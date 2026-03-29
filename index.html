@@ -712,10 +712,21 @@
       const [error, setError] = useState(null);
 
       const params = new URLSearchParams(window.location.search);
+      
+      // Map Qualtrics answer text to credit type codes
+      function mapCreditType(raw) {
+        if (!raw) return "CE";
+        var r = raw.toLowerCase();
+        if (r.includes("cme") || r.includes("medical education") || r.includes("medicine")) return "CME";
+        if (r.includes("attendance") || r.includes("social worker") || r.includes("other")) return "ATTENDANCE";
+        if (r.includes("ce") || r.includes("nursing") || r.includes("continuing education")) return "CE";
+        return raw;
+      }
+      
       const data = {
         fullName: params.get("name") || "",
         webinarId: params.get("webinar") || "",
-        creditType: params.get("credit") || "CE",
+        creditType: mapCreditType(params.get("credit")),
         format: params.get("format") || "live",
       };
 
