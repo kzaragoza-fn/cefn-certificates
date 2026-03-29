@@ -128,7 +128,8 @@
           live: "PARTICIPATED IN THE LIVE ACTIVITY",
           enduring: "PARTICIPATED IN THE LIVE ACTIVITY/ENDURING MATERIAL",
         },
-        creditLabel: (hours) => `AND IS AWARDED ${hours} AMA PRA CATEGORY 1 CREDITS\u2122`,
+        creditLabel: (hours) => `AND IS AWARDED ${hours} AMA PRA CATEGORY 1 CREDITS`,
+        hasTM: true,
         accreditation: "TEXAS A&M UNIVERSITY NARESH K. VASHISHT COLLEGE OF MEDICINE IS ACCREDITED BY THE ACCREDITATION COUNCIL FOR CONTINUING MEDICAL EDUCATION TO PROVIDE CONTINUING MEDICAL EDUCATION FOR PHYSICIANS.",
         physicianDisclaimer: "PHYSICIANS SHOULD CLAIM ONLY THE CREDIT COMMENSURATE WITH THE EXTENT FOR THEIR PARTICIPATION IN THE ACTIVITY.",
         address: "TEXAS A&M UNIVERSITY NARESH K. VASHISHT COLLEGE OF MEDICINE \u2013 HEALTH PROFESSIONS EDUCATION BUILDING \u2013 8447 RIVERSIDE PKWY, BRYAN, TEXAS 77807",
@@ -217,11 +218,36 @@
       const hours = data.creditType === "CME" ? webinar.cmeHours : webinar.ceHours;
       const creditText = config.creditLabel(hours);
       const creditLines = creditText.split("\n");
-      pdf.setFont("helvetica", "normal");
-      pdf.setFontSize(11);
-      creditLines.forEach(function(line, i) {
-        pdf.text(line, cx, y + (i * 14), { align: "center" });
-      });
+      
+      if (config.hasTM) {
+        // CME: "AND IS AWARDED X " normal + "AMA PRA CATEGORY 1 CREDITS" italic + superscript TM
+        var normalPart = "AND IS AWARDED " + hours + " ";
+        var italicPart = "AMA PRA CATEGORY 1 CREDITS";
+        var tmPart = "TM";
+        
+        pdf.setFont("helvetica", "normal"); pdf.setFontSize(11);
+        var normalW = pdf.getStringUnitWidth(normalPart) * 11 / pdf.internal.scaleFactor;
+        pdf.setFont("helvetica", "italic"); pdf.setFontSize(11);
+        var italicW = pdf.getStringUnitWidth(italicPart) * 11 / pdf.internal.scaleFactor;
+        pdf.setFont("helvetica", "normal"); pdf.setFontSize(7);
+        var tmW = pdf.getStringUnitWidth(tmPart) * 7 / pdf.internal.scaleFactor;
+        
+        var totalW = normalW + italicW + tmW + 1;
+        var startX = cx - totalW / 2;
+        
+        pdf.setFont("helvetica", "normal"); pdf.setFontSize(11);
+        pdf.text(normalPart, startX, y);
+        pdf.setFont("helvetica", "italic"); pdf.setFontSize(11);
+        pdf.text(italicPart, startX + normalW, y);
+        pdf.setFont("helvetica", "normal"); pdf.setFontSize(7);
+        pdf.text(tmPart, startX + normalW + italicW + 1, y - 4);
+      } else {
+        pdf.setFont("helvetica", "normal");
+        pdf.setFontSize(11);
+        creditLines.forEach(function(line, i) {
+          pdf.text(line, cx, y + (i * 14), { align: "center" });
+        });
+      }
       y += creditLines.length * 14 + 34;
 
       // Date + Format (kept tight)
@@ -248,22 +274,34 @@
       pdf.setFont("helvetica", "normal");
       pdf.setFontSize(6);
       pdf.setTextColor(51, 51, 51);
+      
+      // Calculate total bottom text height first so we can position it properly
       var accredLines = pdf.splitTextToSize(config.accreditation, W - 100);
+      var totalBottomLines = accredLines.length;
+      var discLines = [];
+      if (config.physicianDisclaimer) {
+        discLines = pdf.splitTextToSize(config.physicianDisclaimer, W - 100);
+        totalBottomLines += discLines.length;
+      }
+      var addrLines = pdf.splitTextToSize(config.address, W - 100);
+      totalBottomLines += addrLines.length;
+      
+      // Start position: work backwards from bottom border (28pt inside border)
+      var bottomStart = H - 32 - (totalBottomLines * 8) - (config.physicianDisclaimer ? 6 : 3);
+      
       accredLines.forEach(function(line, i) {
-        pdf.text(line, cx, H - 48 + (i * 8), { align: "center" });
+        pdf.text(line, cx, bottomStart + (i * 8), { align: "center" });
       });
 
-      var bottomY = H - 48 + accredLines.length * 8 + 3;
+      var bottomY = bottomStart + accredLines.length * 8 + 3;
 
       if (config.physicianDisclaimer) {
-        var discLines = pdf.splitTextToSize(config.physicianDisclaimer, W - 100);
         discLines.forEach(function(line, i) {
           pdf.text(line, cx, bottomY + (i * 8), { align: "center" });
         });
         bottomY += discLines.length * 8 + 3;
       }
 
-      var addrLines = pdf.splitTextToSize(config.address, W - 100);
       addrLines.forEach(function(line, i) {
         pdf.text(line, cx, bottomY + (i * 8), { align: "center" });
       });
@@ -321,7 +359,7 @@
             <div style={{ fontSize: "12px", fontFamily: "Arial, sans-serif", lineHeight: 1.6 }}>{spaced(description)}</div>
             <div style={{ height: "4px" }} />
             <div style={{ fontSize: "24px", fontWeight: "bold", fontFamily: "Georgia, serif", fontStyle: "italic", lineHeight: 1.3, maxWidth: "700px" }}>{webinar.title}</div>
-            <div style={{ fontSize: "12px", fontFamily: "Arial, sans-serif", lineHeight: 1.8, whiteSpace: "pre-line", marginTop: "4px" }}>{config.creditLabel(hours)}</div>
+            <div style={{ fontSize: "12px", fontFamily: "Arial, sans-serif", lineHeight: 1.8, whiteSpace: "pre-line", marginTop: "4px" }}>{config.hasTM ? <span>AND IS AWARDED {hours} <em>AMA PRA CATEGORY 1 CREDITS</em><sup style={{ fontSize: "8px" }}>TM</sup></span> : config.creditLabel(hours)}</div>
             <div style={{ fontSize: "24px", fontWeight: "bold", fontFamily: "Georgia, serif", margin: "6px 0 0" }}>{displayDate}</div>
             <div style={{ fontSize: "12px", fontFamily: "Arial, sans-serif" }}>{spaced(formatLabel)}</div>
             <div style={{ fontSize: "22px", fontWeight: "bold", fontFamily: "Georgia, serif", marginTop: "6px" }}>{presenterLabel}: {webinar.presenters}</div>
