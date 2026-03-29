@@ -153,7 +153,13 @@
     async function generatePDF(elementId, filename) {
       const el = document.getElementById(elementId);
       if (!el) return;
-      const canvas = await html2canvas(el, { scale: 2, useCORS: true, backgroundColor: "#ffffff", logging: false });
+      // Wait for fonts to load
+      if (document.fonts && document.fonts.ready) {
+        await document.fonts.ready;
+      }
+      // Small delay to ensure rendering is complete
+      await new Promise(r => setTimeout(r, 500));
+      const canvas = await html2canvas(el, { scale: 2, useCORS: true, backgroundColor: "#ffffff", logging: false, allowTaint: true });
       const imgData = canvas.toDataURL("image/jpeg", 0.95);
       const pdf = new jspdf.jsPDF({ orientation: "landscape", unit: "px", format: [1056, 816] });
       pdf.addImage(imgData, "JPEG", 0, 0, 1056, 816);
@@ -190,8 +196,11 @@
       const presenterLabel = webinar.presenters.includes(",") ? "Presenters" : "Presenter";
       const displayDate = data.format === "live" ? webinar.liveDate : new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
 
+      // Helper to space out uppercase text (html2canvas can't handle CSS letter-spacing)
+      const spaced = (text, spacing = 1) => text.split('').join('\u2009'.repeat(spacing));
+
       return (
-        <div id="certificate-content" style={{ width: "1056px", height: "816px", background: "#fff", position: "relative", fontFamily: "'Times New Roman', 'Georgia', serif", color: "#111", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "48px 80px", boxSizing: "border-box" }}>
+        <div id="certificate-content" style={{ width: "1056px", height: "816px", background: "#fff", position: "relative", fontFamily: "Georgia, 'Times New Roman', serif", color: "#111", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "48px 80px", boxSizing: "border-box" }}>
           <div style={{ position: "absolute", inset: "24px", border: "2px solid #222", pointerEvents: "none" }} />
           <div style={{ position: "absolute", inset: "28px", border: "1.5px solid #222", pointerEvents: "none" }} />
           <div style={{ position: "absolute", inset: "32px", border: "1px solid #222", pointerEvents: "none" }} />
@@ -202,19 +211,19 @@
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", gap: "6px", maxWidth: "780px" }}>
             <img src={config.logo} alt="Texas A&M University" style={{ height: "110px", width: "auto", marginBottom: "4px", objectFit: "contain" }} />
             <div style={{ height: "4px" }} />
-            <div style={{ fontSize: "13px", letterSpacing: "2px", fontFamily: "Arial, sans-serif" }}>{config.verb}</div>
-            <div style={{ fontSize: "36px", fontWeight: "bold", fontFamily: "'Georgia', serif", margin: "4px 0" }}>{data.fullName || "Full Name"}</div>
-            <div style={{ fontSize: "12px", letterSpacing: "1.5px", fontFamily: "Arial, sans-serif", lineHeight: 1.4 }}>{description}</div>
+            <div style={{ fontSize: "13px", fontFamily: "Arial, sans-serif" }}>{spaced(config.verb)}</div>
+            <div style={{ fontSize: "36px", fontWeight: "bold", fontFamily: "Georgia, serif", margin: "4px 0" }}>{data.fullName || "Full Name"}</div>
+            <div style={{ fontSize: "12px", fontFamily: "Arial, sans-serif", lineHeight: 1.6 }}>{spaced(description)}</div>
             <div style={{ height: "4px" }} />
-            <div style={{ fontSize: "24px", fontWeight: "bold", fontFamily: "'Georgia', serif", fontStyle: "italic", lineHeight: 1.3, maxWidth: "700px" }}>{webinar.title}</div>
-            <div style={{ fontSize: "12px", letterSpacing: "1px", fontFamily: "Arial, sans-serif", lineHeight: 1.5, whiteSpace: "pre-line", marginTop: "4px" }}>{config.creditLabel(hours)}</div>
-            <div style={{ fontSize: "24px", fontWeight: "bold", fontFamily: "'Georgia', serif", margin: "6px 0 0" }}>{displayDate}</div>
-            <div style={{ fontSize: "12px", letterSpacing: "2px", fontFamily: "Arial, sans-serif" }}>{formatLabel}</div>
-            <div style={{ fontSize: "22px", fontWeight: "bold", fontFamily: "'Georgia', serif", marginTop: "6px" }}>{presenterLabel}: {webinar.presenters}</div>
+            <div style={{ fontSize: "24px", fontWeight: "bold", fontFamily: "Georgia, serif", fontStyle: "italic", lineHeight: 1.3, maxWidth: "700px" }}>{webinar.title}</div>
+            <div style={{ fontSize: "12px", fontFamily: "Arial, sans-serif", lineHeight: 1.8, whiteSpace: "pre-line", marginTop: "4px" }}>{config.creditLabel(hours)}</div>
+            <div style={{ fontSize: "24px", fontWeight: "bold", fontFamily: "Georgia, serif", margin: "6px 0 0" }}>{displayDate}</div>
+            <div style={{ fontSize: "12px", fontFamily: "Arial, sans-serif" }}>{spaced(formatLabel)}</div>
+            <div style={{ fontSize: "22px", fontWeight: "bold", fontFamily: "Georgia, serif", marginTop: "6px" }}>{presenterLabel}: {webinar.presenters}</div>
             <div style={{ height: "10px" }} />
-            <div style={{ fontSize: "8px", fontFamily: "Arial, sans-serif", letterSpacing: "0.5px", lineHeight: 1.5, maxWidth: "680px", color: "#333" }}>{config.accreditation}</div>
-            {config.physicianDisclaimer && <div style={{ fontSize: "8px", fontFamily: "Arial, sans-serif", letterSpacing: "0.5px", lineHeight: 1.5, maxWidth: "680px", color: "#333", marginTop: "2px" }}>{config.physicianDisclaimer}</div>}
-            <div style={{ fontSize: "8px", fontFamily: "Arial, sans-serif", letterSpacing: "0.5px", lineHeight: 1.4, color: "#333", marginTop: "2px" }}>{config.address}</div>
+            <div style={{ fontSize: "8px", fontFamily: "Arial, sans-serif", lineHeight: 1.6, maxWidth: "680px", color: "#333" }}>{config.accreditation}</div>
+            {config.physicianDisclaimer && <div style={{ fontSize: "8px", fontFamily: "Arial, sans-serif", lineHeight: 1.6, maxWidth: "680px", color: "#333", marginTop: "2px" }}>{config.physicianDisclaimer}</div>}
+            <div style={{ fontSize: "8px", fontFamily: "Arial, sans-serif", lineHeight: 1.6, color: "#333", marginTop: "2px" }}>{config.address}</div>
           </div>
         </div>
       );
