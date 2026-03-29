@@ -176,82 +176,79 @@
       const logoImg = new Image();
       logoImg.src = config.logo;
       await new Promise(r => { logoImg.onload = r; });
-      const logoH = 72;
+      const logoH = 80;
       const logoW = (logoImg.width / logoImg.height) * logoH;
       
-      // Calculate vertical centering
-      // Usable area: from ~40pt (inside borders) to ~545pt (above accreditation)
-      // Center the content block within this range
-      const contentStart = 105;
+      const contentStart = 90;
       
       pdf.addImage(logoImg, "JPEG", cx - logoW/2, contentStart, logoW, logoH);
 
-      let y = contentStart + logoH + 30;
+      let y = contentStart + logoH + 32;
 
       pdf.setTextColor(17, 17, 17);
 
       // Verb
       pdf.setFont("helvetica", "normal");
-      pdf.setFontSize(10);
+      pdf.setFontSize(13);
       pdf.text(config.verb, cx, y, { align: "center" });
-      y += 32;
+      y += 36;
 
       // Learner name
       pdf.setFont("times", "bold");
-      pdf.setFontSize(28);
+      pdf.setFontSize(36);
       pdf.text(data.fullName || "Full Name", cx, y, { align: "center" });
-      y += 24;
+      y += 26;
 
       // Description
       const description = config.description[data.format];
       pdf.setFont("helvetica", "normal");
-      pdf.setFontSize(8);
+      pdf.setFontSize(9.5);
       pdf.text(description, cx, y, { align: "center" });
-      y += 32;
+      y += 34;
 
       // Webinar title
       pdf.setFont("times", "bolditalic");
-      pdf.setFontSize(17);
-      const titleLines = pdf.splitTextToSize(webinar.title, W - 160);
+      pdf.setFontSize(21);
+      const titleLines = pdf.splitTextToSize(webinar.title, W - 140);
       titleLines.forEach(function(line, i) {
-        pdf.text(line, cx, y + (i * 21), { align: "center" });
+        pdf.text(line, cx, y + (i * 25), { align: "center" });
       });
-      y += titleLines.length * 21 + 20;
+      y += titleLines.length * 25 + 20;
 
       // Credit line
       const hours = data.creditType === "CME" ? webinar.cmeHours : webinar.ceHours;
       const creditText = config.creditLabel(hours);
       const creditLines = creditText.split("\n");
       pdf.setFont("helvetica", "normal");
-      pdf.setFontSize(8);
+      pdf.setFontSize(10);
       creditLines.forEach(function(line, i) {
-        pdf.text(line, cx, y + (i * 12), { align: "center" });
+        pdf.text(line, cx, y + (i * 14), { align: "center" });
       });
-      y += creditLines.length * 12 + 22;
+      y += creditLines.length * 14 + 22;
 
       // Date
       const displayDate = data.format === "live" ? webinar.liveDate : new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
       pdf.setFont("times", "bold");
-      pdf.setFontSize(18);
+      pdf.setFontSize(22);
       pdf.text(displayDate, cx, y, { align: "center" });
       y += 22;
 
       // Format label
       const formatLabel = data.format === "live" ? "LIVE ONLINE WEBINAR" : "ENDURING ONLINE WEBINAR";
       pdf.setFont("helvetica", "normal");
-      pdf.setFontSize(9);
+      pdf.setFontSize(10);
       pdf.text(formatLabel, cx, y, { align: "center" });
-      y += 32;
+      y += 34;
 
       // Presenters
       const presenterLabel = webinar.presenters.includes(",") ? "Presenters" : "Presenter";
       pdf.setFont("times", "bold");
-      pdf.setFontSize(16);
+      pdf.setFontSize(20);
       pdf.text(presenterLabel + ": " + webinar.presenters, cx, y, { align: "center" });
 
       // Accreditation at bottom
       pdf.setFont("helvetica", "normal");
-      pdf.setFontSize(5.5);
+      pdf.setFontSize(6);
       pdf.setTextColor(51, 51, 51);
       var accredLines = pdf.splitTextToSize(config.accreditation, W - 100);
       accredLines.forEach(function(line, i) {
