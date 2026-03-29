@@ -29,6 +29,12 @@
     const MEDICINE_LOGO = logoData.medicine;
 
     // ============================================================
+    // CLOUDFLARE WORKER URL for Airtable logging
+    // Set this after deploying the worker. Leave empty to disable logging.
+    // ============================================================
+    const WORKER_URL = "https://cefn-certificate-logger.kzaragoza.workers.dev";
+
+    // ============================================================
     // WEBINAR CONFIG — Single source of truth, grouped by year.
     // To add a new webinar, add an entry here.
     // Set cmeHours to null if CME is not offered.
@@ -639,6 +645,9 @@
       });
 
       pdf.save(filename);
+      
+      // Return base64 PDF data for Airtable logging
+      return pdf.output("datauristring").split(",")[1];
     }
 
     // ============================================================
@@ -838,7 +847,29 @@
           // Clean filename of characters that are problematic in file systems
           filename = filename.replace(/[\/\\:*?"<>|]/g, "-");
           
-          await generatePDF(data, webinar, config, filename);
+          var pdfBase64 = await generatePDF(data, webinar, config, filename);
+          
+          // Log to Airtable via Cloudflare Worker (fire and forget, don't block the download)
+          var hours = data.creditType === "CME" ? webinar.cmeHours : webinar.ceHours;
+          var certDate = data.format === "live" ? webinar.liveDate : new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+          
+          if (typeof WORKER_URL !== "undefined" && WORKER_URL) {
+            fetch(WORKER_URL, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                learnerName: data.fullName,
+                webinarTitle: webinar.title,
+                webinarId: data.webinarId,
+                creditType: data.creditType,
+                format: data.format,
+                contactHours: hours,
+                presenter: webinar.presenters,
+                certificateDate: certDate,
+                pdfBase64: pdfBase64,
+              })
+            }).catch(function(e) { console.log("Logging error (non-blocking):", e); });
+          }
         } catch (err) {
           console.error("PDF generation failed:", err);
           setError("There was an error generating your certificate. Please try again or contact forensicnursing@tamu.edu.");
