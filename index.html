@@ -405,9 +405,25 @@
       const handleDownload = async () => {
         setDownloading(true);
         try {
-          const safeName = data.fullName.replace(/[^a-zA-Z0-9]/g, "_");
           const config = CERTIFICATE_CONFIG[data.creditType];
-          await generatePDF(data, webinar, config, `Certificate_${safeName}_${data.creditType}.pdf`);
+          const formatWord = data.format === "live" ? "Live" : "Enduring";
+          const creditWord = data.creditType === "ATTENDANCE" ? "Attendance" : data.creditType;
+          
+          // Build date in YYYYMMDD format
+          var dateStr;
+          if (data.format === "live") {
+            var d = new Date(webinar.liveDate);
+            dateStr = d.getFullYear() + String(d.getMonth()+1).padStart(2,"0") + String(d.getDate()).padStart(2,"0");
+          } else {
+            var now = new Date();
+            dateStr = now.getFullYear() + String(now.getMonth()+1).padStart(2,"0") + String(now.getDate()).padStart(2,"0");
+          }
+          
+          var filename = data.fullName + " - " + formatWord + " Webinar " + creditWord + " Certificate (" + dateStr + ").pdf";
+          // Clean filename of characters that are problematic in file systems
+          filename = filename.replace(/[\/\\:*?"<>|]/g, "-");
+          
+          await generatePDF(data, webinar, config, filename);
         } catch (err) {
           console.error("PDF generation failed:", err);
           setError("There was an error generating your certificate. Please try again or contact forensicnursing@tamu.edu.");
