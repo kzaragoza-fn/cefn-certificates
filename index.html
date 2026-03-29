@@ -707,6 +707,40 @@
     // ============================================================
     // MAIN APP (Learner View Only - Production)
     // ============================================================
+    // ============================================================
+    // RESPONSIVE CERTIFICATE WRAPPER
+    // ============================================================
+    function ResponsiveCertificate({ data, webinar }) {
+      const containerRef = useRef(null);
+      const [scale, setScale] = useState(0.65);
+
+      useEffect(function() {
+        function calcScale() {
+          if (containerRef.current) {
+            var containerWidth = containerRef.current.offsetWidth - 24; // padding
+            var certWidth = 1056;
+            var newScale = Math.min(containerWidth / certWidth, 0.7);
+            setScale(newScale);
+          }
+        }
+        calcScale();
+        window.addEventListener("resize", calcScale);
+        return function() { window.removeEventListener("resize", calcScale); };
+      }, []);
+
+      var certHeight = 816 * scale;
+
+      return (
+        <div ref={containerRef} style={{ background: "#e8e5e0", borderRadius: "8px", padding: "12px", overflow: "hidden" }}>
+          <div style={{ height: certHeight + "px", display: "flex", justifyContent: "center" }}>
+            <div style={{ transform: "scale(" + scale + ")", transformOrigin: "top center", boxShadow: "0 4px 20px rgba(0,0,0,0.15)" }}>
+              <CertificatePreview data={data} webinar={webinar} />
+            </div>
+          </div>
+        </div>
+      );
+    }
+
     function App() {
       const [downloading, setDownloading] = useState(false);
       const [error, setError] = useState(null);
@@ -815,17 +849,13 @@
 
       return (
         <div style={{ minHeight: "100vh", background: "#f5f3ef", fontFamily: "'Work Sans', sans-serif" }}>
-          <div style={{ background: "#500000", padding: "20px 32px", color: "#fff", textAlign: "center" }}>
+          <div style={{ background: "#500000", padding: "20px 24px", color: "#fff", textAlign: "center" }}>
             <h1 style={{ margin: 0, fontSize: "20px", fontFamily: "'Oswald', sans-serif", letterSpacing: "1px" }}>Your Certificate is Ready</h1>
             <p style={{ margin: "4px 0 0", fontSize: "13px", opacity: 0.8 }}>Texas A&M Center of Excellence in Forensic Nursing</p>
           </div>
-          <div style={{ maxWidth: "1100px", margin: "24px auto", padding: "0 24px" }}>
-            <div style={{ background: "#e8e5e0", borderRadius: "8px", padding: "24px", display: "flex", justifyContent: "center", overflow: "auto" }}>
-              <div style={{ transform: "scale(0.65)", transformOrigin: "top center", boxShadow: "0 4px 20px rgba(0,0,0,0.15)" }}>
-                <CertificatePreview data={data} webinar={webinar} />
-              </div>
-            </div>
-            <div style={{ textAlign: "center", marginTop: "24px" }}>
+          <div style={{ maxWidth: "1100px", margin: "16px auto", padding: "0 12px" }}>
+            <ResponsiveCertificate data={data} webinar={webinar} />
+            <div style={{ textAlign: "center", marginTop: "20px" }}>
               <button
                 onClick={handleDownload}
                 disabled={downloading}
@@ -834,13 +864,14 @@
                   border: "none", borderRadius: "6px", fontSize: "16px", fontWeight: 600,
                   cursor: downloading ? "wait" : "pointer", fontFamily: "'Oswald', sans-serif",
                   textTransform: "uppercase", letterSpacing: "1.5px", transition: "background 0.2s",
+                  width: "100%", maxWidth: "400px",
                 }}
               >
                 {downloading ? "Generating PDF..." : "Download Certificate (PDF)"}
               </button>
               {error && <p style={{ color: "#c62828", marginTop: "12px", fontSize: "14px" }}>{error}</p>}
             </div>
-            <p style={{ textAlign: "center", color: "#999", fontSize: "13px", marginTop: "20px" }}>
+            <p style={{ textAlign: "center", color: "#999", fontSize: "13px", marginTop: "16px", paddingBottom: "24px" }}>
               If you experience any issues, please contact <a href="mailto:forensicnursing@tamu.edu" style={{ color: "#500000" }}>forensicnursing@tamu.edu</a>
             </p>
           </div>
